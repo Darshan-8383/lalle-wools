@@ -3,12 +3,12 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
-const productsRoute = require('../server/routes/products');
-const { router: ordersRoute } = require('../server/routes/orders');
-const paymentRoute = require('../server/routes/payment');
-const shippingRoute = require('../server/routes/shipping');
-const paymentService = require('../server/services/payment');
-const shippingService = require('../server/services/shipping');
+const productsRoute = require('./routes/products');
+const { router: ordersRoute } = require('./routes/orders');
+const paymentRoute = require('./routes/payment');
+const shippingRoute = require('./routes/shipping');
+const paymentService = require('./services/payment');
+const shippingService = require('./services/shipping');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -36,15 +36,21 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve the existing frontend as static files
+// Serve the frontend as static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🛍  LALLEWOOLS server running at http://localhost:${PORT}`);
-  console.log(`   Payment gateway: ${paymentService.isConfigured() ? 'RAZORPAY (live keys found)' : 'MOCK MODE — set RAZORPAY_KEY_ID/SECRET in .env to go live'}`);
-  console.log(`   Shipping provider: ${shippingService.isConfigured() ? 'SHIPROCKET (live keys found)' : 'MOCK MODE — set SHIPROCKET_EMAIL/PASSWORD in .env to go live'}\n`);
-});
+// Only listen locally (Vercel manages its own serverless listener)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`\n🛍  LALLEWOOLS server running at http://localhost:${PORT}`);
+    console.log(`   Payment gateway: ${paymentService.isConfigured() ? 'RAZORPAY (live keys found)' : 'MOCK MODE — set RAZORPAY_KEY_ID/SECRET in .env to go live'}`);
+    console.log(`   Shipping provider: ${shippingService.isConfigured() ? 'SHIPROCKET (live keys found)' : 'MOCK MODE — set SHIPROCKET_EMAIL/PASSWORD in .env to go live'}\n`);
+  });
+}
+
+// Export for Vercel Serverless Functions
+module.exports = app;
