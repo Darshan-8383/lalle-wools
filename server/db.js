@@ -2,16 +2,17 @@
  * Minimal file-backed datastore.
  * --------------------------------
  * Zero native dependencies (no node-gyp / better-sqlite3 build headaches),
- * so this runs anywhere Node runs. It's intentionally simple — a real
- * production deployment should swap this for Postgres/MySQL/Mongo behind
- * the same function signatures (createOrder, getOrder, updateOrder, etc.)
- * so nothing else in the app needs to change. See README "Going to a real
- * database" section.
+ * so this runs anywhere Node runs. Uses /tmp on Vercel to avoid read-only
+ * filesystem errors (EROFS).
  */
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, 'data');
+// Route to /tmp on Vercel / serverless production, fallback to local ./data in development
+const DATA_DIR = process.env.VERCEL || process.env.NODE_ENV === 'production'
+  ? '/tmp'
+  : path.join(__dirname, 'data');
+
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 function ensureDb() {
@@ -27,6 +28,7 @@ function readDb() {
 }
 
 function writeDb(data) {
+  ensureDb();
   fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
